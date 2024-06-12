@@ -69,7 +69,7 @@ def run(guild_ids: List[discord.Object]):
             f"{SERVER_URL}/graphics/champ-stats/{game_name}/{tag_line}/{champ}"
         )
         if r.status_code == 404:
-            await interaction.followup.send(r.content["msg"])  # type: ignore
+            await interaction.followup.send(r.json)  # type: ignore
             working = False
             return
         imgdata = base64.b64decode(r.text)
@@ -168,6 +168,13 @@ def run(guild_ids: List[discord.Object]):
             return
         await interaction.followup.send("Player registered successfully!")
         working = False
+
+    @client.event
+    async def on_message(message):
+        if client.user == None:
+            return
+        if client.user.mentioned_in(message):
+            await message.channel.send("what do you want now")
 
     @client.event
     async def on_ready():

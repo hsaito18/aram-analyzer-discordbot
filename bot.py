@@ -169,6 +169,44 @@ def run(guild_ids: List[discord.Object]):
         await interaction.followup.send("Player registered successfully!")
         working = False
 
+    @tree.command(
+        name="aram-lineup-stats",
+        description="Replies with winrate ARAM stats for a set of 5 players.",
+        guilds=guild_ids,
+    )
+    async def get_lineup_stats(
+        interaction,
+        game_name1: str,
+        tag_line1: str,
+        game_name2: str,
+        tag_line2: str,
+        game_name3: str,
+        tag_line3: str,
+        game_name4: str,
+        tag_line4: str,
+        game_name5: str,
+        tag_line5: str,
+    ):
+        global working
+        await interaction.response.defer()
+        while working:
+            await asyncio.sleep(0.5)
+        working = True
+        lineup_data = requests.get(
+            f"{SERVER_URL}/lineups/lineup/{game_name1}/{tag_line1}/{game_name2}/{tag_line2}/{game_name3}/{tag_line3}/{game_name4}/{tag_line4}/{game_name5}/{tag_line5}",
+        )
+        if lineup_data.status_code != 200:
+            await interaction.followup.send(
+                f"An error occurred while getting lineup. Error code: {lineup_data.status_code}"
+            )
+            working = False
+            return
+        data_obj = lineup_data.json()
+        winrate = data_obj["wins"] / (data_obj["wins"] + data_obj["losses"]) * 100
+        output = f"{game_name1} | {game_name2} | {game_name3} | {game_name4} | {game_name5}\nRecord: {data_obj["wins"]}-{data_obj["losses"]}\nWinrate: {winrate:.1f}%\n"
+        await interaction.followup.send(output)
+        working = False
+
     @client.event
     async def on_message(message):
         if client.user == None:

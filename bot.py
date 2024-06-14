@@ -195,6 +195,10 @@ def run(guild_ids: List[discord.Object]):
         lineup_data = requests.get(
             f"{SERVER_URL}/lineups/lineup/{game_name1}/{tag_line1}/{game_name2}/{tag_line2}/{game_name3}/{tag_line3}/{game_name4}/{tag_line4}/{game_name5}/{tag_line5}",
         )
+        if lineup_data.status_code == 404:
+            await interaction.followup.send("Error getting one or more players. Please check your game names and taglines.")
+            working = False
+            return
         if lineup_data.status_code != 200:
             await interaction.followup.send(
                 f"An error occurred while getting lineup. Error code: {lineup_data.status_code}"

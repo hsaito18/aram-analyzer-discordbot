@@ -202,7 +202,7 @@ def run(guild_ids: List[discord.Object]):
             working = False
             return
         data_obj = lineup_data.json()
-        winrate = data_obj["wins"] / (data_obj["wins"] + data_obj["losses"]) * 100
+        winrate = data_obj["wins"] / (data_obj["wins"] + data_obj["losses"]) * 100 if (data_obj["wins"] + data_obj["losses"] > 0) else 0
         output = f"{game_name1} | {game_name2} | {game_name3} | {game_name4} | {game_name5}\nRecord: {data_obj["wins"]}-{data_obj["losses"]}\nWinrate: {winrate:.1f}%\n"
         await interaction.followup.send(output)
         working = False

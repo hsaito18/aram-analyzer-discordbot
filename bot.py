@@ -251,7 +251,8 @@ def run(guild_ids: List[discord.Object]):
             f"{game_name1} | {game_name2} | {game_name3} | {game_name4} | {game_name5}\n"
             f"Record: {data_obj['wins']}-{data_obj['losses']}\nWinrate: {winrate:.1f}%\n"
             f"Average Game Time: {avg_game_time_string}  |  Average Win Time: {avg_win_time_string}  |  Average Loss Time: {avg_loss_time_string}\n"
-            f"Kills: {data_obj['kills']}  |  Deaths: {data_obj['deaths']}  |  +/-: {kd_plus_minus_string}"
+            f"Kills: {data_obj['kills']}  |  Deaths: {data_obj['deaths']}  |  +/-: {kd_plus_minus_string}\n"
+            f"Average Damage: {data_obj["averageDamage"]}  |  Average Damage Taken: {data_obj["averageDamageTaken"]}"
         )
         await interaction.followup.send(output)
         working = False

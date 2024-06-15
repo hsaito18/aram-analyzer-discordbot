@@ -19,6 +19,12 @@ if not isinstance(TOKEN, str):
 working = False
 
 
+def match_time_formatter(time: float) -> str:
+    minutes = int(time // 60)
+    seconds = int(time % 60)
+    return f"{minutes}:{seconds:02d}"
+
+
 def run(guild_ids: List[discord.Object]):
     intents = discord.Intents.default()
     intents.message_content = True
@@ -192,11 +198,37 @@ def run(guild_ids: List[discord.Object]):
         while working:
             await asyncio.sleep(0.5)
         working = True
+        save_matches: requests.Response = requests.post(
+            f"{SERVER_URL}/players/save-matches",
+            data={"gameName": game_name1, "tagLine": tag_line1},
+        )
+        if save_matches.status_code == 404:
+            await interaction.followup.send("First player has not been found.")
+            working = False
+            return
+        if save_matches.status_code == 429:
+            await interaction.followup.send(
+                "Server is busy with another request. Please try again in a few minutes."
+            )
+            working = False
+            return
+        analyze_matches: requests.Response = requests.post(
+            f"{SERVER_URL}/players/analyze-matches",
+            data={"gameName": game_name1, "tagLine": tag_line1},
+        )
+        if analyze_matches.status_code != 200 or save_matches.status_code != 200:
+            await interaction.followup.send(
+                f"There was a problem updating matches. Error codes: SM:{save_matches.status_code}, AM:{analyze_matches.status_code}"
+            )
+            working = False
+            return
         lineup_data = requests.get(
             f"{SERVER_URL}/lineups/lineup/{game_name1}/{tag_line1}/{game_name2}/{tag_line2}/{game_name3}/{tag_line3}/{game_name4}/{tag_line4}/{game_name5}/{tag_line5}",
         )
         if lineup_data.status_code == 404:
-            await interaction.followup.send("Error getting one or more players. Please check your game names and taglines.")
+            await interaction.followup.send(
+                "Error getting one or more players. Please check your game names and taglines."
+            )
             working = False
             return
         if lineup_data.status_code != 200:
@@ -206,8 +238,21 @@ def run(guild_ids: List[discord.Object]):
             working = False
             return
         data_obj = lineup_data.json()
-        winrate = data_obj["wins"] / (data_obj["wins"] + data_obj["losses"]) * 100 if (data_obj["wins"] + data_obj["losses"] > 0) else 0
-        output = f"{game_name1} | {game_name2} | {game_name3} | {game_name4} | {game_name5}\nRecord: {data_obj["wins"]}-{data_obj["losses"]}\nWinrate: {winrate:.1f}%\n"
+        winrate = (
+            data_obj["wins"] / (data_obj["wins"] + data_obj["losses"]) * 100
+            if (data_obj["wins"] + data_obj["losses"] > 0)
+            else 0
+        )
+        avg_game_time_string = match_time_formatter(data_obj["averageGameTime"])
+        avg_win_time_string = match_time_formatter(data_obj["averageWinTime"])
+        avg_loss_time_string = match_time_formatter(data_obj["averageLossTime"])
+        kd_plus_minus_string = f"+{data_obj["kills"] - data_obj["deaths"]}" if data_obj["kills"] - data_obj["deaths"] > 0 else str(data_obj["kills"] - data_obj["deaths"])
+        output = (
+            f"{game_name1} | {game_name2} | {game_name3} | {game_name4} | {game_name5}\n"
+            f"Record: {data_obj['wins']}-{data_obj['losses']}\nWinrate: {winrate:.1f}%\n"
+            f"Average Game Time: {avg_game_time_string}  |  Average Win Time: {avg_win_time_string}  |  Average Loss Time: {avg_loss_time_string}\n"
+            f"Kills: {data_obj['kills']}  |  Deaths: {data_obj['deaths']}  |  +/-: {kd_plus_minus_string}"
+        )
         await interaction.followup.send(output)
         working = False
 

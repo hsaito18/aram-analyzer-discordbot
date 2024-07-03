@@ -34,7 +34,7 @@ def run(guild_ids: List[discord.Object]):
     tree = app_commands.CommandTree(client)
 
     @tree.command(
-        name="aram-champ-stats",
+        name="aram-player-champ-stats",
         description="Champion stats for a given game name, tagline, and champion (e.g. hsaito NA1 Leblanc)",
         guilds=guild_ids,
     )
@@ -253,6 +253,43 @@ def run(guild_ids: List[discord.Object]):
             f"Average Game Time: {avg_game_time_string}  |  Average Win Time: {avg_win_time_string}  |  Average Loss Time: {avg_loss_time_string}\n"
             f"Kills: {data_obj['kills']}  |  Deaths: {data_obj['deaths']}  |  +/-: {kd_plus_minus_string}\n"
             f"Average Damage: {data_obj["averageDamage"]}  |  Average Damage Taken: {data_obj["averageDamageTaken"]}"
+        )
+        await interaction.followup.send(output)
+        working = False
+
+    @tree.command(
+        name="aram-champion-stats",
+        description="Replies with basic ARAM stats for a given champion.",
+        guilds=guild_ids,
+    )
+    async def get_champion_stats(
+        interaction,
+        champ: str,
+    ):
+        global working
+        await interaction.response.defer()
+        while working:
+            await asyncio.sleep(0.5)
+        working = True
+        champ_stats_res: requests.Response = requests.get(
+            f"{SERVER_URL}/champions/{champ}"
+        )
+        if champ_stats_res.status_code == 404:
+            await interaction.followup.send("Champion data not found.")
+            working = False
+            return
+        if champ_stats_res.status_code != 200:
+            await interaction.followup.send(
+                f"An error occurred while getting champion data. Error code: {champ_stats_res.status_code}"
+            )
+            working = False
+            return
+        data_obj = champ_stats_res.json()
+        overall = data_obj["overall"]
+        output = (
+            f"{champ} Stats \n"
+            f"Record: {overall['wins']}-{overall['losses']}\nWinrate: {(overall['winRate']*100):.1f}%\n"
+            f"KDA: {overall['kda']:.1f}"
         )
         await interaction.followup.send(output)
         working = False
